@@ -5,8 +5,8 @@
     <Platform Condition=" '$(Platform)' == '' ">x86</Platform>
     <ProjectGuid>{E0AD8439-0F2C-4BA4-8E33-450715058A9D}</ProjectGuid>
     <OutputType>Exe</OutputType>
-    <RootNamespace>ImageSizeAdder</RootNamespace>
-    <AssemblyName>ImageSizeAdder</AssemblyName>
+    <RootNamespace>AmpImgnizer</RootNamespace>
+    <AssemblyName>AmpImgnizer</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|x86' ">

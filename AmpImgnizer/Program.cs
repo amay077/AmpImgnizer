@@ -4,7 +4,7 @@ using System.Net;
 using System.Text;
 using SkiaSharp;
 
-namespace ImageSizeAdder
+namespace AmpImgnizer
 {
 	class MainClass
 	{
