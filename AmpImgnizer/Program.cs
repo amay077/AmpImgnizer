@@ -99,12 +99,22 @@ namespace AmpImgnizer
 						throw new FileNotFoundException($"Http status code = {res.StatusCode}");
 					}
 					var length = (int)res.ContentLength;
-					var reader = new BinaryReader(res.GetResponseStream());
-					var data = new byte[length];
-					reader.Read(data, 0, length);
 
-					var bmpInfo = SKBitmap.DecodeBounds(data);
-					return bmpInfo.Size;
+					if (imageSrc.EndsWith("svg", StringComparison.Ordinal))
+					{
+						var svgDoc = Svg.SvgDocument.Open<Svg.SvgDocument>(res.GetResponseStream());
+						var dim = svgDoc.GetDimensions();
+						return new SKSizeI((int)dim.Width, (int)dim.Height);
+					}
+					else
+					{
+						var reader = new BinaryReader(res.GetResponseStream());
+						var data = new byte[length];
+						reader.Read(data, 0, length);
+
+						var bmpInfo = SKBitmap.DecodeBounds(data);
+						return bmpInfo.Size;
+					}
 				}
 			}
 			else
@@ -119,7 +129,6 @@ namespace AmpImgnizer
 					absolutePath = new Uri(new Uri(dir), imageUri).AbsolutePath;
 				}
 
-				Console.WriteLine(absolutePath);
 				if (!File.Exists(absolutePath))
 				{
 					throw new FileNotFoundException($"{absolutePath} is not found.");
@@ -128,20 +137,14 @@ namespace AmpImgnizer
 				if (absolutePath.EndsWith("svg", StringComparison.Ordinal))
 				{
 					var svgDoc = Svg.SvgDocument.Open(absolutePath);
-					return new SKSizeI((int)svgDoc.Width.Value, (int)svgDoc.Height.Value);
-
-					//using (var reader = new StreamReader(absolutePath))
-					//{
-					//	var g = NGraphics.Graphic.LoadSvg(reader);
-					//	return new SKSizeI((int)g.Size.Width, (int)g.Size.Height);
-					//}
+					var dim = svgDoc.GetDimensions();
+					return new SKSizeI((int)dim.Width, (int)dim.Height);
 				}
 				else
 				{
 					var bmpInfo = SKBitmap.DecodeBounds(absolutePath);
 					return bmpInfo.Size;
 				}
-
 			}
 		}
 	}

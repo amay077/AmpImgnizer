@@ -33,6 +33,11 @@
     <Reference Include="SkiaSharp">
       <HintPath>..\packages\SkiaSharp.1.56.0\lib\net45\SkiaSharp.dll</HintPath>
     </Reference>
+    <Reference Include="Svg">
+      <HintPath>..\packages\Svg.2.3.0\lib\net35\Svg.dll</HintPath>
+    </Reference>
+    <Reference Include="System.Drawing" />
+    <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
     <Compile Include="Program.cs" />
