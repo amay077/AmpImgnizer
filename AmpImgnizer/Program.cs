@@ -10,13 +10,14 @@ namespace AmpImgnizer
 	{
 		public static int Main(string[] args)
 		{
-			if ((args?.Length ?? 0) == 0)
+			if ((args?.Length ?? 0) != 1)
 			{
-				Console.WriteLine("no arguments.");
+				Console.WriteLine("invalid arguments.");
 				return -1;
 			}
 
 			var filePaths = args[0];
+			var siteRootDir = Directory.GetCurrentDirectory();
 
 			var fileList = filePaths.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 
@@ -51,20 +52,17 @@ namespace AmpImgnizer
 								var imageSrc = line.Substring(startIndex, endIndex - startIndex);
 								Console.WriteLine($"img={imageSrc}");
 
-								if (imageSrc.StartsWith("http", StringComparison.Ordinal))
+								try
 								{
-									try
-									{
-										var size = GetImageSize(imageSrc);
-										Console.WriteLine($"wid={size.Width}, hei={size.Height}");
+									var size = GetImageSize(siteRootDir, Path.GetDirectoryName(filePath), imageSrc);
+									Console.WriteLine($"wid={size.Width}, hei={size.Height}");
 
-										line = line.Replace("<img src=\"", $"<amp-img width=\"{size.Width}\" height=\"{size.Height}\" layout=\"responsive\" src=\"");
-										needProcess = true;
-									}
-									catch (Exception ex)
-									{
-										Console.WriteLine($"ERROR:" + ex.StackTrace);
-									}
+									line = line.Replace("<img src=\"", $"<amp-img width=\"{size.Width}\" height=\"{size.Height}\" layout=\"responsive\" src=\"");
+									needProcess = true;
+								}
+								catch (Exception ex)
+								{
+									Console.WriteLine($"ERROR:" + ex.StackTrace);
 								}
 							}
 							writer.WriteLine(line);
@@ -86,19 +84,64 @@ namespace AmpImgnizer
 			return 0;
 		}
 
-		static SKSizeI GetImageSize(string imageSrc)
+		static SKSizeI GetImageSize(string siteRootDir, string dir, string imageSrc)
 		{
-			var req = WebRequest.Create(imageSrc);
-			req.Method = "GET";
-			using (var res = req.GetResponse())
+			var imageUri = new Uri(imageSrc);
+			
+			if (imageUri.Scheme.StartsWith("http", StringComparison.Ordinal))
 			{
-				var length = (int)res.ContentLength;
-				var reader = new BinaryReader(res.GetResponseStream());
-				var data = new byte[length];
-				reader.Read(data, 0, length);
+				var req = WebRequest.Create(imageSrc);
+				req.Method = "GET";
+				using (var res = (HttpWebResponse)req.GetResponse())
+				{
+					if (res.StatusCode != HttpStatusCode.OK)
+					{
+						throw new FileNotFoundException($"Http status code = {res.StatusCode}");
+					}
+					var length = (int)res.ContentLength;
+					var reader = new BinaryReader(res.GetResponseStream());
+					var data = new byte[length];
+					reader.Read(data, 0, length);
 
-				var bmpInfo = SKBitmap.DecodeBounds(data);
-				return bmpInfo.Size;
+					var bmpInfo = SKBitmap.DecodeBounds(data);
+					return bmpInfo.Size;
+				}
+			}
+			else
+			{
+				var absolutePath = imageUri.LocalPath;
+				if (imageUri.IsAbsoluteUri)
+				{
+					absolutePath = Path.Combine(siteRootDir, absolutePath.Substring(1));
+				}
+				else
+				{
+					absolutePath = new Uri(new Uri(dir), imageUri).AbsolutePath;
+				}
+
+				Console.WriteLine(absolutePath);
+				if (!File.Exists(absolutePath))
+				{
+					throw new FileNotFoundException($"{absolutePath} is not found.");
+				}
+
+				if (absolutePath.EndsWith("svg", StringComparison.Ordinal))
+				{
+					var svgDoc = Svg.SvgDocument.Open(absolutePath);
+					return new SKSizeI((int)svgDoc.Width.Value, (int)svgDoc.Height.Value);
+
+					//using (var reader = new StreamReader(absolutePath))
+					//{
+					//	var g = NGraphics.Graphic.LoadSvg(reader);
+					//	return new SKSizeI((int)g.Size.Width, (int)g.Size.Height);
+					//}
+				}
+				else
+				{
+					var bmpInfo = SKBitmap.DecodeBounds(absolutePath);
+					return bmpInfo.Size;
+				}
+
 			}
 		}
 	}
