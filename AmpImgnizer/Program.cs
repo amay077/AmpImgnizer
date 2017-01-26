@@ -1,7 +1,9 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Net;
 using System.Text;
+using Newtonsoft.Json;
 using SkiaSharp;
 
 namespace AmpImgnizer
@@ -20,6 +22,17 @@ namespace AmpImgnizer
 			var siteRootDir = Directory.GetCurrentDirectory();
 
 			var fileList = filePaths.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+
+			var imageSizeCachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "size_cache.json");
+			IDictionary<string, SKSizeI> cache = new Dictionary<string, SKSizeI>();
+			if (File.Exists(imageSizeCachePath))
+			{
+				using (var strem = File.OpenRead(imageSizeCachePath))
+				{
+					var reader = new StreamReader(strem);
+					cache = JsonConvert.DeserializeObject<IDictionary<string, SKSizeI>>(reader.ReadToEnd());
+				}
+			}
 
 			foreach (var filePath in fileList)
 			{
@@ -54,10 +67,21 @@ namespace AmpImgnizer
 
 								try
 								{
-									var size = GetImageSize(siteRootDir, Path.GetDirectoryName(filePath), imageSrc);
+									SKSizeI size;
+									if (cache.ContainsKey(imageSrc))
+									{
+										size = cache[imageSrc];
+									}
+									else
+									{
+										size = GetImageSize(siteRootDir, Path.GetDirectoryName(filePath), imageSrc);
+										cache.Add(imageSrc, size);
+									}
+
 									Console.WriteLine($"wid={size.Width}, hei={size.Height}");
 
 									line = line.Replace("<img src=\"", $"<amp-img width=\"{size.Width}\" height=\"{size.Height}\" layout=\"responsive\" src=\"");
+
 									needProcess = true;
 								}
 								catch (Exception ex)
@@ -81,6 +105,13 @@ namespace AmpImgnizer
 				}
 			}
 
+			using (var strem = File.OpenWrite(imageSizeCachePath)) 
+			{
+				var writer = new StreamWriter(strem);
+				writer.Write(JsonConvert.SerializeObject(cache));
+				writer.Flush();
+			}
+				
 			return 0;
 		}
 
