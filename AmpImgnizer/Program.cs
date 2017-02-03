@@ -121,7 +121,7 @@ namespace AmpImgnizer
                                         var senderEndIndex = line.IndexOf(")", senderStartIndex, StringComparison.Ordinal);
                                         var sender = line.Substring(senderStartIndex, senderEndIndex - senderStartIndex);
 
-                                        line = $@"<amp-twitter data-tweetid=""{tweetId}"" width=""800"" height=""600"" layout=""responsive"" /><!-- {message} by @{sender} -->";
+                                        line = $@"<amp-twitter data-tweetid=""{tweetId}"" width=""800"" height=""600"" layout=""responsive"" ></amp-twitter><!-- {message} by @{sender} -->";
                                         reader.ReadLine(); // 次の行(<script) を読み飛ばす
 
                                         needProcess = true;
