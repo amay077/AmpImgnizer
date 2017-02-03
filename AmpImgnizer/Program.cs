@@ -55,40 +55,84 @@ namespace AmpImgnizer
 					{
 						while (reader.Peek() >= 0)
 						{
-							var query = "<img src=\"";
-							var line = reader.ReadLine();
-							var startIndex = line.IndexOf(query, StringComparison.Ordinal);
-							if (startIndex >= 0)
-							{
-								startIndex += query.Length;
-								var endIndex = line.IndexOf("\"", startIndex, StringComparison.Ordinal);
-								var imageSrc = line.Substring(startIndex, endIndex - startIndex);
-								Console.WriteLine($"img={imageSrc}");
+                            var line = reader.ReadLine();
 
-								try
-								{
-									SKSizeI size;
-									if (cache.ContainsKey(imageSrc))
-									{
-										size = cache[imageSrc];
-									}
-									else
-									{
-										size = GetImageSize(siteRootDir, Path.GetDirectoryName(filePath), imageSrc);
-										cache.Add(imageSrc, size);
-									}
+                            // Replace <img>
+                            {
+                                var query = "<img src=\"";
+                                var startIndex = line.IndexOf(query, StringComparison.Ordinal);
+                                if (startIndex >= 0)
+                                {
+                                    startIndex += query.Length;
+                                    var endIndex = line.IndexOf("\"", startIndex, StringComparison.Ordinal);
+                                    var imageSrc = line.Substring(startIndex, endIndex - startIndex);
+                                    Console.WriteLine($"img={imageSrc}");
 
-									Console.WriteLine($"wid={size.Width}, hei={size.Height}");
+                                    try
+                                    {
+                                        SKSizeI size;
+                                        if (cache.ContainsKey(imageSrc))
+                                        {
+                                            size = cache[imageSrc];
+                                        }
+                                        else
+                                        {
+                                            size = GetImageSize(siteRootDir, Path.GetDirectoryName(filePath), imageSrc);
+                                            cache.Add(imageSrc, size);
+    									}
 
-									line = line.Replace("<img src=\"", $"<amp-img width=\"{size.Width}\" height=\"{size.Height}\" layout=\"responsive\" src=\"");
+    									Console.WriteLine($"wid={size.Width}, hei={size.Height}");
 
-									needProcess = true;
-								}
-								catch (Exception ex)
-								{
-									Console.WriteLine($"ERROR:" + ex.StackTrace);
-								}
-							}
+    									line = line.Replace("<img src=\"", $"<amp-img width=\"{size.Width}\" height=\"{size.Height}\" layout=\"responsive\" src=\"");
+
+    									needProcess = true;
+    								}
+    								catch (Exception ex)
+    								{
+    									Console.WriteLine($"IMAGE REPLACE ERROR:" + ex.StackTrace);
+    								}
+    							}
+                            }
+
+                            // Replace twitter script
+                            {
+                                var query = "<blockquote class=\"twitter-tweet\"";
+                                var startIndex = line.IndexOf(query, StringComparison.Ordinal);
+                                if (startIndex >= 0)
+                                {
+                                    Console.WriteLine($"twitter script = {line}");
+                                    // <blockquote class="twitter-tweet" data-lang="ja"><p lang="ja" dir="ltr">これだよこれがインスタントプログラミングだよ!</p>
+                                    // &mdash; Atsushi Eno (@atsushieno) <a href="https://twitter.com/atsushieno/status/715566438203809792">2016年3月31日</a></blockquote>
+
+                                    try
+                                    {
+                                        var tweetIdQuery = "/status/";
+                                        var tweetIdStartIndex = line.IndexOf(tweetIdQuery, StringComparison.Ordinal) + tweetIdQuery.Length;
+                                        var tweetIdEndIndex = line.IndexOf("\"", tweetIdStartIndex, StringComparison.Ordinal);
+                                        var tweetId = line.Substring(tweetIdStartIndex, tweetIdEndIndex - tweetIdStartIndex);
+
+                                        var messageQuery = "dir=\"ltr\">";
+                                        var messageStartIndex = line.IndexOf(messageQuery, StringComparison.Ordinal) + messageQuery.Length;
+                                        var messageEndIndex = line.IndexOf("</p>", messageStartIndex, StringComparison.Ordinal);
+                                        var message = line.Substring(messageStartIndex, messageEndIndex - messageStartIndex);
+
+                                        var senderQuery = "(@";
+                                        var senderStartIndex = line.IndexOf(senderQuery, StringComparison.Ordinal) + senderQuery.Length;
+                                        var senderEndIndex = line.IndexOf(")", senderStartIndex, StringComparison.Ordinal);
+                                        var sender = line.Substring(senderStartIndex, senderEndIndex - senderStartIndex);
+
+                                        line = $@"<amp-twitter data-tweetid=""{tweetId}"" width=""800"" height=""600"" layout=""responsive"" /><!-- {message} by @{sender} -->";
+                                        reader.ReadLine(); // 次の行(<script) を読み飛ばす
+
+                                        needProcess = true;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine($"TWEET REPLACE ERROR:" + ex.StackTrace);
+                                    }
+                                }
+                            }
+
 							writer.WriteLine(line);
 						}
 					}
