@@ -9,5 +9,6 @@
     <PackageReference Include="SkiaSharp" Version="1.60.1" />
     <PackageReference Include="Newtonsoft.Json" Version="11.0.2" />
     <PackageReference Include="Svg" Version="2.3.0" />
+    <PackageReference Include="Avalonia.Skia.Linux.Natives" Version="1.60.0.1" />
   </ItemGroup>
 </Project>

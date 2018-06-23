@@ -89,7 +89,7 @@ namespace AmpImgnizer
                                     }
                                     catch (Exception ex)
                                     {
-                                        Console.WriteLine($"IMAGE REPLACE ERROR:" + ex.StackTrace);
+										Console.WriteLine($"IMAGE REPLACE ERROR({ex.Message}):" + ex.StackTrace);
                                     }
                                 }
                             }
@@ -128,7 +128,7 @@ namespace AmpImgnizer
                                     }
                                     catch (Exception ex)
                                     {
-                                        Console.WriteLine($"TWEET REPLACE ERROR:" + ex.StackTrace);
+										Console.WriteLine($"TWEET REPLACE ERROR({ex.Message}):" + ex.StackTrace);
                                     }
                                 }
                             }
