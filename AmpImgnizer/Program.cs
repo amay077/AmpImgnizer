@@ -8,53 +8,53 @@ using SkiaSharp;
 
 namespace AmpImgnizer
 {
-	class MainClass
-	{
-		public static int Main(string[] args)
-		{
-			if ((args?.Length ?? 0) != 1)
-			{
-				Console.WriteLine("invalid arguments.");
-				return -1;
-			}
+    class MainClass
+    {
+        public static int Main(string[] args)
+        {
+            if ((args?.Length ?? 0) != 1)
+            {
+                Console.WriteLine("invalid arguments.");
+                return -1;
+            }
 
-			var filePaths = args[0];
-			var siteRootDir = Directory.GetCurrentDirectory();
+            var filePaths = args[0];
+            var siteRootDir = Directory.GetCurrentDirectory();
 
-			var fileList = filePaths.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
+            var fileList = filePaths.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 
-			var imageSizeCachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "size_cache.json");
-			IDictionary<string, SKSizeI> cache = new Dictionary<string, SKSizeI>();
-			if (File.Exists(imageSizeCachePath))
-			{
-				using (var strem = File.OpenRead(imageSizeCachePath))
-				{
-					var reader = new StreamReader(strem);
-					cache = JsonConvert.DeserializeObject<IDictionary<string, SKSizeI>>(reader.ReadToEnd());
-				}
-			}
+            var imageSizeCachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "size_cache.json");
+            IDictionary<string, SKSizeI> cache = new Dictionary<string, SKSizeI>();
+            if (File.Exists(imageSizeCachePath))
+            {
+                using (var strem = File.OpenRead(imageSizeCachePath))
+                {
+                    var reader = new StreamReader(strem);
+                    cache = JsonConvert.DeserializeObject<IDictionary<string, SKSizeI>>(reader.ReadToEnd());
+                }
+            }
 
-			foreach (var filePath in fileList)
-			{
-				Console.WriteLine($"{filePath}");
-				var tempFilePath = filePath + ".new";
-				var needProcess = false;
+            foreach (var filePath in fileList)
+            {
+                Console.WriteLine($"{filePath}");
+                var tempFilePath = filePath + ".new";
+                var needProcess = false;
 
-				//var cacheFile = args[1];
-				if (!File.Exists(filePath))
-				{
-					Console.WriteLine($"{filePath} not found.");
-					return -2;
-				}
+                //var cacheFile = args[1];
+                if (!File.Exists(filePath))
+                {
+                    Console.WriteLine($"{filePath} not found.");
+                    return -2;
+                }
 
-				using (var inStream = File.OpenRead(filePath))
-				using (var outStream = File.OpenWrite(tempFilePath))
-				{
-					using (var reader = new StreamReader(inStream, Encoding.UTF8))
-					using (var writer = new StreamWriter(outStream, Encoding.UTF8))
-					{
-						while (reader.Peek() >= 0)
-						{
+                using (var inStream = File.OpenRead(filePath))
+                using (var outStream = File.OpenWrite(tempFilePath))
+                {
+                    using (var reader = new StreamReader(inStream, Encoding.UTF8))
+                    using (var writer = new StreamWriter(outStream, Encoding.UTF8))
+                    {
+                        while (reader.Peek() >= 0)
+                        {
                             var line = reader.ReadLine();
 
                             // Replace <img>
@@ -79,19 +79,19 @@ namespace AmpImgnizer
                                         {
                                             size = GetImageSize(siteRootDir, Path.GetDirectoryName(filePath), imageSrc);
                                             cache.Add(imageSrc, size);
-    									}
+                                        }
 
-    									Console.WriteLine($"wid={size.Width}, hei={size.Height}");
+                                        Console.WriteLine($"wid={size.Width}, hei={size.Height}");
 
-    									line = line.Replace("<img src=\"", $"<amp-img width=\"{size.Width}\" height=\"{size.Height}\" layout=\"responsive\" src=\"");
+                                        line = line.Replace("<img src=\"", $"<amp-img width=\"{size.Width}\" height=\"{size.Height}\" layout=\"responsive\" src=\"");
 
-    									needProcess = true;
-    								}
-    								catch (Exception ex)
-    								{
-    									Console.WriteLine($"IMAGE REPLACE ERROR:" + ex.StackTrace);
-    								}
-    							}
+                                        needProcess = true;
+                                    }
+                                    catch (Exception ex)
+                                    {
+                                        Console.WriteLine($"IMAGE REPLACE ERROR:" + ex.StackTrace);
+                                    }
+                                }
                             }
 
                             // Replace twitter script
@@ -133,94 +133,94 @@ namespace AmpImgnizer
                                 }
                             }
 
-							writer.WriteLine(line);
-						}
-					}
-				}
+                            writer.WriteLine(line);
+                        }
+                    }
+                }
 
-				if (needProcess)
-				{
-					File.Delete(filePath);
-					File.Move(tempFilePath, filePath);
-				}
-				else if (File.Exists(tempFilePath))
-				{
-					File.Delete(tempFilePath);
-				}
-			}
+                if (needProcess)
+                {
+                    File.Delete(filePath);
+                    File.Move(tempFilePath, filePath);
+                }
+                else if (File.Exists(tempFilePath))
+                {
+                    File.Delete(tempFilePath);
+                }
+            }
 
-			using (var strem = File.OpenWrite(imageSizeCachePath)) 
-			{
-				var writer = new StreamWriter(strem);
-				writer.Write(JsonConvert.SerializeObject(cache));
-				writer.Flush();
-			}
-				
-			return 0;
-		}
+            using (var strem = File.OpenWrite(imageSizeCachePath))
+            {
+                var writer = new StreamWriter(strem);
+                writer.Write(JsonConvert.SerializeObject(cache));
+                writer.Flush();
+            }
 
-		static SKSizeI GetImageSize(string siteRootDir, string dir, string imageSrc)
-		{
-			var imageUri = new Uri(imageSrc);
-			
-			if (imageUri.Scheme.StartsWith("http", StringComparison.Ordinal))
-			{
-				var req = WebRequest.Create(imageSrc);
-				req.Method = "GET";
-				using (var res = (HttpWebResponse)req.GetResponse())
-				{
-					if (res.StatusCode != HttpStatusCode.OK)
-					{
-						throw new FileNotFoundException($"Http status code = {res.StatusCode}");
-					}
-					var length = (int)res.ContentLength;
+            return 0;
+        }
 
-					if (imageSrc.EndsWith("svg", StringComparison.Ordinal))
-					{
-						var svgDoc = Svg.SvgDocument.Open<Svg.SvgDocument>(res.GetResponseStream());
-						var dim = svgDoc.GetDimensions();
-						return new SKSizeI((int)dim.Width, (int)dim.Height);
-					}
-					else
-					{
-						var reader = new BinaryReader(res.GetResponseStream());
-						var data = new byte[length];
-						reader.Read(data, 0, length);
+        static SKSizeI GetImageSize(string siteRootDir, string dir, string imageSrc)
+        {
+            var imageUri = new Uri(imageSrc);
 
-						var bmpInfo = SKBitmap.DecodeBounds(data);
-						return bmpInfo.Size;
-					}
-				}
-			}
-			else
-			{
-				var absolutePath = imageUri.LocalPath;
-				if (imageUri.IsAbsoluteUri)
-				{
-					absolutePath = Path.Combine(siteRootDir, absolutePath.Substring(1));
-				}
-				else
-				{
-					absolutePath = new Uri(new Uri(dir), imageUri).AbsolutePath;
-				}
+            if (imageUri.Scheme.StartsWith("http", StringComparison.Ordinal))
+            {
+                var req = WebRequest.Create(imageSrc);
+                req.Method = "GET";
+                using (var res = (HttpWebResponse)req.GetResponse())
+                {
+                    if (res.StatusCode != HttpStatusCode.OK)
+                    {
+                        throw new FileNotFoundException($"Http status code = {res.StatusCode}");
+                    }
+                    var length = (int)res.ContentLength;
 
-				if (!File.Exists(absolutePath))
-				{
-					throw new FileNotFoundException($"{absolutePath} is not found.");
-				}
+                    if (imageSrc.EndsWith("svg", StringComparison.Ordinal))
+                    {
+                        var svgDoc = Svg.SvgDocument.Open<Svg.SvgDocument>(res.GetResponseStream());
+                        var dim = svgDoc.GetDimensions();
+                        return new SKSizeI((int)dim.Width, (int)dim.Height);
+                    }
+                    else
+                    {
+                        var reader = new BinaryReader(res.GetResponseStream());
+                        var data = new byte[length];
+                        reader.Read(data, 0, length);
 
-				if (absolutePath.EndsWith("svg", StringComparison.Ordinal))
-				{
-					var svgDoc = Svg.SvgDocument.Open(absolutePath);
-					var dim = svgDoc.GetDimensions();
-					return new SKSizeI((int)dim.Width, (int)dim.Height);
-				}
-				else
-				{
-					var bmpInfo = SKBitmap.DecodeBounds(absolutePath);
-					return bmpInfo.Size;
-				}
-			}
-		}
-	}
+                        var bmpInfo = SKBitmap.DecodeBounds(data);
+                        return bmpInfo.Size;
+                    }
+                }
+            }
+            else
+            {
+                var absolutePath = imageUri.LocalPath;
+                if (imageUri.IsAbsoluteUri)
+                {
+                    absolutePath = Path.Combine(siteRootDir, absolutePath.Substring(1));
+                }
+                else
+                {
+                    absolutePath = new Uri(new Uri(dir), imageUri).AbsolutePath;
+                }
+
+                if (!File.Exists(absolutePath))
+                {
+                    throw new FileNotFoundException($"{absolutePath} is not found.");
+                }
+
+                if (absolutePath.EndsWith("svg", StringComparison.Ordinal))
+                {
+                    var svgDoc = Svg.SvgDocument.Open(absolutePath);
+                    var dim = svgDoc.GetDimensions();
+                    return new SKSizeI((int)dim.Width, (int)dim.Height);
+                }
+                else
+                {
+                    var bmpInfo = SKBitmap.DecodeBounds(absolutePath);
+                    return bmpInfo.Size;
+                }
+            }
+        }
+    }
 }
