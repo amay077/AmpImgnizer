@@ -4,7 +4,7 @@ using System.IO;
 using System.Net;
 using System.Text;
 using Newtonsoft.Json;
-using SkiaSharp;
+using SixLabors.ImageSharp;
 
 namespace AmpImgnizer
 {
@@ -24,14 +24,21 @@ namespace AmpImgnizer
             var fileList = filePaths.Split(new string[] { Environment.NewLine }, StringSplitOptions.RemoveEmptyEntries);
 
             var imageSizeCachePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "size_cache.json");
-            IDictionary<string, SKSizeI> cache = new Dictionary<string, SKSizeI>();
+			IDictionary<string, ImgSize> cache = new Dictionary<string, ImgSize>();
             if (File.Exists(imageSizeCachePath))
             {
-                using (var strem = File.OpenRead(imageSizeCachePath))
-                {
-                    var reader = new StreamReader(strem);
-                    cache = JsonConvert.DeserializeObject<IDictionary<string, SKSizeI>>(reader.ReadToEnd());
-                }
+				try
+				{
+					using (var strem = File.OpenRead(imageSizeCachePath))
+                    {
+                        var reader = new StreamReader(strem);
+						cache = JsonConvert.DeserializeObject<IDictionary<string, ImgSize>>(reader.ReadToEnd());
+                    }
+				}
+				finally
+				{
+
+				}
             }
 
             foreach (var filePath in fileList)
@@ -70,7 +77,7 @@ namespace AmpImgnizer
 
                                     try
                                     {
-                                        SKSizeI size;
+										ImgSize size;
                                         if (cache.ContainsKey(imageSrc))
                                         {
                                             size = cache[imageSrc];
@@ -159,7 +166,7 @@ namespace AmpImgnizer
             return 0;
         }
 
-        static SKSizeI GetImageSize(string siteRootDir, string dir, string imageSrc)
+		static ImgSize GetImageSize(string siteRootDir, string dir, string imageSrc)
         {
             var imageUri = new Uri(imageSrc);
 
@@ -179,16 +186,20 @@ namespace AmpImgnizer
                     {
                         var svgDoc = Svg.SvgDocument.Open<Svg.SvgDocument>(res.GetResponseStream());
                         var dim = svgDoc.GetDimensions();
-                        return new SKSizeI((int)dim.Width, (int)dim.Height);
+						return new ImgSize((int)dim.Width, (int)dim.Height);
                     }
                     else
                     {
-                        var reader = new BinaryReader(res.GetResponseStream());
-                        var data = new byte[length];
-                        reader.Read(data, 0, length);
+                        //var reader = new BinaryReader(res.GetResponseStream());
+                        //var data = new byte[length];
+                        //reader.Read(data, 0, length);
 
-                        var bmpInfo = SKBitmap.DecodeBounds(data);
-                        return bmpInfo.Size;
+                        //var bmpInfo = SKBitmap.DecodeBounds(data);
+                        //return bmpInfo.Size;
+						using (var image = Image.Load(res.GetResponseStream()))
+                        {
+							return new ImgSize(image.Width, image.Height);
+                        }
                     }
                 }
             }
@@ -213,14 +224,34 @@ namespace AmpImgnizer
                 {
                     var svgDoc = Svg.SvgDocument.Open(absolutePath);
                     var dim = svgDoc.GetDimensions();
-                    return new SKSizeI((int)dim.Width, (int)dim.Height);
+					return new ImgSize((int)dim.Width, (int)dim.Height);
                 }
                 else
                 {
-                    var bmpInfo = SKBitmap.DecodeBounds(absolutePath);
-                    return bmpInfo.Size;
+                    //var bmpInfo = SKBitmap.DecodeBounds(absolutePath);
+                    //return bmpInfo.Size;
+					using (var image = Image.Load(absolutePath))
+                    {
+                        return new ImgSize(image.Width, image.Height);
+                    }
                 }
             }
         }
     }
+
+	public class ImgSize
+	{
+		public ImgSize() {
+			
+		}
+
+		public ImgSize(int width, int height)
+		{
+			Width = width;
+			Height = height;
+		}
+
+		public int Width { get; set; }
+		public int Height { get; set; }
+	}
 }
